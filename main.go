@@ -128,6 +128,8 @@ func showTitle() {
 
 func statusColor(i statuspage.Incident) string {
 	switch *i.Status {
+	case "investigating":
+		return "lightblue"
 	case "resolved":
 		return "green"
 	case "monitoring":

@@ -1,8 +1,9 @@
 # StatusPage.io Show Tool
+This tool was written for use via [BitBar](https://github.com/matryer/bitbar#writing-plugins). It will show the status from your statuspage.io page. You will see open incidents, but can also see recent closed incidents as well as scheduled ones.
 
-This tool was written for use via
-[https://github.com/matryer/bitbar#writing-plugins](BitBar). It will
-show the status from your statuspage.io page.
+# Screenshots
+![In Use With BitBar in MacOS Day mode](./screenshots/SPShowDemoDaytime.png)
+![In Use With BitBar in MacOS Night mode](./screenshots/SPShowDemoNightmode.png)
 
 # Installation
 First, decide if you are going to use it in script mode or via the
@@ -31,14 +32,19 @@ If you look at the sections you will see one for "scheduled" and one for
 resolved incidents in statuspage. For example, if you don't care to see
 scheduled incidents, set `enabled=false` and they will not be shown.
 
-If you have multiple accounts to monitor, make a file for each, and
-instead of calling the binary, use a shell script which passes `-c
-`~/.OTHERCONFIGFILE` or the full path for each and you should see them
-both show. Also: My condolences on monitoring more than one.
+If you have multiple accounts to monitor, make a file for each, and instead of
+calling the binary, use a shell script which passes `-c ~/.OTHERCONFIGFILE` or
+the full path for each and you should see them both show. Also: My condolences
+on monitoring more than one.
+
+## Why not one of the others?
+First, this started as a different tool, so converting it was fairly simple. Second, I didn't know about them until after I have built it. Besides, I prefer the model of having a config (or CLI flags) to hardcoding everything into scripts. 
 
 # TODO
-* The Statuspage client I am using is ... less than complete and somewhat
-annoying. Thus I need to fix it as well as add some missing calls such
-as the page info API.
-* more customization options
- 
+[ ] The Statuspage client I am using is ... less than complete and somewhat annoying. Thus I need to fix it as well as add some missing calls such as the page info API. I'll probably fork it and run with that.
+[ ] more customization options such as conditional colors
+[ ] Actions: I'd like to explore options for creating incidents and updating them from the menu as well.
+[ ] config options for incident cycling
+[ ] config options for titles
+[ ] move to text/template to enable better control and flexibility
+[ ] explore ways of doing more interaction or local window information display such as a detailed view of an incident or an update form.
