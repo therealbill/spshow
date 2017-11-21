@@ -269,7 +269,7 @@ func showStatus(c *cli.Context) error {
 	}
 	showResolved()
 	showScheduled()
-	fmt.Printf("---\nGo To StatusPage|href=%s\n", url)
+	//fmt.Printf("---\nGo To StatusPage|href=%s\n", url)
 	return nil
 }
 
