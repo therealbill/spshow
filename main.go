@@ -263,10 +263,10 @@ func showStatus(c *cli.Context) error {
 			fmt.Printf("--Last Update: %s\n", formatDateTime(*incident.UpdatedAt))
 		}
 	}
-	url, err := getPageURL()
-	if err != nil {
-		log.Fatal(err)
-	}
+	//url, err := getPageURL()
+	//if err != nil {
+	//log.Fatal(err)
+	//}
 	showResolved()
 	showScheduled()
 	//fmt.Printf("---\nGo To StatusPage|href=%s\n", url)
