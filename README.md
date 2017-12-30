@@ -59,6 +59,6 @@ scripts.
 - [ ] more customization options such as conditional colors
 - [ ] Actions: I'd like to explore options for creating incidents and updating them from the menu as well.
 - [ ] config options for incident cycling
-- [ ] config options for titles
+- [x] config options for titles
 - [ ] move to text/template to enable better control and flexibility
 - [ ] explore ways of doing more interaction or local window information display such as a detailed view of an incident or an update form.
