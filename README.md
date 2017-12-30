@@ -23,12 +23,23 @@ it in `Available`, then in `Enabled` execute:
 # Configuration
 This app needs configuration. To keep it simple, copy the sample.config
 from the repo to `~/.pdshow` and edit it to put in your PageID and
-auth token. If you want to change the "icons", which are actuall emoji,
+auth token. If you want to change the "icons", which are actually emoji,
 feel free to edit them in - but be sure they are "github supported"
-emoji.
+emoji. 
 
-If you look at the sections you will see one for "scheduled" and one for
-"resolved". These sections control what the app does about scheduled and
+The main section has "title" and "Baricon" fields. The title sets the text (can
+be left blank) to put between the Baricon and the incident counts. This is
+useful for running more than on instance. The Baricon is a base64 encoding of
+the image to use. It should be devoid of color and 16ptx16pt to fit in bar and
+with the bar's other icons. 
+
+The default is the StatusPage.io logo so converted.  You could use a company or
+page logo here.  The way to do that, assuming you have an image of the right
+specs, is to do `base64 -i filename.png` and copy the output into the Baricon
+field in the config file.
+
+If you look at the remaining sections you will see one for "scheduled" and one
+for "resolved". These sections control what the app does about scheduled and
 resolved incidents in statuspage. For example, if you don't care to see
 scheduled incidents, set `enabled=false` and they will not be shown.
 
@@ -38,7 +49,10 @@ the full path for each and you should see them both show. Also: My condolences
 on monitoring more than one.
 
 ## Why not one of the others?
-First, this started as a different tool, so converting it was fairly simple. Second, I didn't know about them until after I have built it. Besides, I prefer the model of having a config (or CLI flags) to hardcoding everything into scripts. 
+First, this started as a different tool, so converting it was fairly simple.
+Second, I didn't know about them until after I have built it. Besides, I prefer
+the model of having a config (or CLI flags) to hardcoding everything into
+scripts. 
 
 # TODO
 - [ ] The Statuspage client I am using is ... less than complete and somewhat annoying. Thus I need to fix it as well as add some missing calls such as the page info API. I'll probably fork it and run with that.

@@ -6,6 +6,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/johnmccabe/bitbar"
 	homedir "github.com/mitchellh/go-homedir"
 	"github.com/urfave/cli"
 	statuspage "github.com/yfronto/go-statuspage-api"
@@ -22,6 +23,7 @@ var (
 	PastIncidents      []statuspage.Incident
 	ScheduledIncidents []statuspage.Incident
 	dateFormat         = "2006-01-02 15:04 MST"
+	bar                bitbar.Plugin
 )
 
 func getClient() (c *statuspage.Client, err error) {
@@ -36,8 +38,10 @@ func getClient() (c *statuspage.Client, err error) {
 
 type Config struct {
 	Main struct {
-		Page  string
-		Token string
+		Page    string
+		Token   string
+		Title   string
+		Baricon string
 	}
 	Scheduled struct {
 		Enabled bool
@@ -100,63 +104,72 @@ func haveActives() bool {
 }
 
 func showTitle() {
-	icon := conf.Icons.Allclear
-	color := ""
-	if haveActives() {
-		color = "red"
-		icon = conf.Icons.Openincident
-	}
-	title := fmt.Sprintf("%s SPI A:%d ", icon, len(ActiveIncidents))
-	if conf.Scheduled.Enabled {
-		title += fmt.Sprintf("S:%d ", len(ScheduledIncidents))
-	}
-	if conf.Resolved.Enabled {
-		title += fmt.Sprintf("R:%d ", len(PastIncidents))
-	}
-	title += fmt.Sprintf("|color=%s\n", color)
-	fmt.Printf(title)
-	fmt.Printf("%s Open StatusPage Incidents: %d|color=%s\n", icon, len(ActiveIncidents), color)
+	wtftrue := true
+	style_clear := bitbar.Style{}
+	style_active := bitbar.Style{Color: "red", Trim: &wtftrue, Length: 24}
+	//style_active := bitbar.Style{Color: "red"}
+	//icon := conf.Icons.Allclear
+	//if haveActives() { icon = conf.Icons.Openincident }
+
+	title := fmt.Sprintf("%s %d", conf.Main.Title, len(ActiveIncidents))
 
 	if conf.Scheduled.Enabled {
-		fmt.Printf("Scheduled Maintenance Incidents: %d\n", len(ScheduledIncidents))
+		title += fmt.Sprintf("/%d", len(ScheduledIncidents))
 	}
 	if conf.Resolved.Enabled {
-		fmt.Printf("Resolved Incidents: %d\n", len(PastIncidents))
+		title += fmt.Sprintf("/%d", len(PastIncidents))
 	}
-	fmt.Printf("---\n")
+	if haveActives() {
+		//icon = conf.Icons.Openincident
+		//aline := fmt.Sprintf("%s Open Incidents: %d", icon, len(ActiveIncidents))
+		bar.StatusLine(title).Style(style_active).DropDown(false).Image(conf.Main.Baricon)
+		//bar.StatusLine(aline).Style(style_active)
+	} else {
+		//aline := fmt.Sprintf("%s Open Incidents: %d", icon, len(ActiveIncidents))
+		bar.StatusLine(title).Style(style_clear).Image("https://global.localizecdn.com/0-images/integrations/statuspage.png")
+		//bar.StatusLine(aline).Style(style_clear)
+	}
+
+	if conf.Scheduled.Enabled {
+		//bar.StatusLine(fmt.Sprintf("Scheduled Maintenance Incidents: %d", len(ScheduledIncidents)))
+	}
+	if conf.Resolved.Enabled {
+		//bar.StatusLine(fmt.Sprintf("Resolved Incidents: %d", len(PastIncidents)))
+	}
 }
 
-func statusColor(i statuspage.Incident) string {
+func statusStyle(i statuspage.Incident, s bitbar.Style) bitbar.Style {
 	switch *i.Status {
 	case "investigating":
-		return "lightblue"
+		s.Color = "lightblue"
 	case "resolved":
-		return "green"
+		s.Color = "green"
 	case "monitoring":
 		switch *i.Impact {
 		case "major":
-			return "orange"
+			s.Color = "orange"
 		case "minor":
-			return "yellow"
+			s.Color = "yellow"
 		case "monitoring":
-			return "#123def"
+			s.Color = "#123def"
 		default:
-			return "#123def"
+			s.Color = "#123def"
 		}
 	default:
-		return ""
+		s.Color = ""
 	}
+	return s
 }
 
-func impactColor(i statuspage.Incident) string {
+func impactStyle(i statuspage.Incident, s bitbar.Style) bitbar.Style {
 	switch *i.Impact {
 	case "minor":
-		return "#123def"
+		s.Color = "#123def"
 	case "major":
-		return "red"
+		s.Color = "red"
 	default:
-		return ""
 	}
+	return s
 }
 
 func getPageURL() (string, error) {
@@ -173,32 +186,37 @@ func showScheduled() error {
 	if !conf.Scheduled.Enabled {
 		return nil
 	}
-	fmt.Print("---\n")
-	fmt.Printf("Scheduled Incidents (%d)|color=orange\n", len(ScheduledIncidents))
+	menu := bar.SubMenu
+	ss := bitbar.Style{
+		Font:  "UbuntuMono-Bold",
+		Color: "orange",
+		Size:  18,
+	}
+	menu.Line(fmt.Sprintf("Scheduled Incidents (%d)", len(ScheduledIncidents))).Style(ss)
 	for x, incident := range ScheduledIncidents {
 		if x > conf.Scheduled.Limit-1 {
 			return nil
 		}
-		fmt.Printf("Incident: %s\n", *incident.Name)
-		fmt.Printf("--Scheduled for: %s\n", formatDateTime(*incident.ScheduledFor))
-		fmt.Printf("--Scheduled until: %s\n", formatDateTime(*incident.ScheduledUntil))
-		fmt.Printf("--Open in StatusPage.io|href=%s\n", *incident.Shortlink)
-		fmt.Printf("--Impact: %s\n", *incident.Impact)
-		fmt.Printf("--Status: %s|color=%s\n", *incident.Status, statusColor(incident))
-		fmt.Print("--Affected Components:\t")
+		menu.Line(fmt.Sprintf("Incident: %s", *incident.Name))
+		im := menu.NewSubMenu()
+		im.Line(fmt.Sprintf("Scheduled for: %s", formatDateTime(*incident.ScheduledFor)))
+		im.Line(fmt.Sprintf("Scheduled until: %s", formatDateTime(*incident.ScheduledUntil)))
+		im.Line(fmt.Sprintf("Open in StatusPage.io|href=%s", *incident.Shortlink))
+		im.Line(fmt.Sprintf("Impact: %s", *incident.Impact))
+		im.Line(fmt.Sprintf("Status: %s", *incident.Status)).Style(statusStyle(incident, ss))
+		for _, iu := range incident.IncidentUpdates {
+			im.Line(fmt.Sprintf("Updated At:%s", formatDateTime(*iu.CreatedAt)))
+		}
+		im.Line(fmt.Sprintf("Affected Components:\t"))
+		cm := im.NewSubMenu()
 		if incident.Components != nil {
-			fmt.Print("\n")
 			for _, c := range *incident.Components {
-				fmt.Printf("--_\t%s\n", *c.Name)
+				cm.Line(*c.Name)
 			}
-			//println("\n")
 		} else {
-			fmt.Print("None\n")
+			cm.Line("None")
 		}
 
-		for _, iu := range incident.IncidentUpdates {
-			fmt.Printf("--Updated At:%s\n", formatDateTime(*iu.CreatedAt))
-		}
 	}
 	return nil
 }
@@ -207,69 +225,89 @@ func showResolved() error {
 	if !conf.Resolved.Enabled {
 		return nil
 	}
-	fmt.Print("---\n")
-	fmt.Printf("Past Incidents (%d)|color=green\n", len(PastIncidents))
+	menu := bar.SubMenu
+	ss := bitbar.Style{
+		Font:  "UbuntuMono-Bold",
+		Color: "green",
+		Size:  18,
+	}
+	is := bitbar.Style{
+		Font:  "UbuntuMono-Bold",
+		Color: "green",
+		Size:  14,
+	}
+	menu.Line(fmt.Sprintf("Past Incidents (%d)", len(PastIncidents))).Style(ss)
 	for x, incident := range PastIncidents {
 		if x > conf.Resolved.Limit-1 {
 			break
 		}
-		fmt.Printf("Incident: %s|color=%s\n", *incident.Name, impactColor(incident))
-		fmt.Printf("--Created: %s\n", formatDateTime(*incident.CreatedAt))
-		fmt.Printf("--Open in StatusPage.io|href=%s\n", *incident.Shortlink)
-		fmt.Printf("--Impact: %s|color=%s\n", *incident.Impact, impactColor(incident))
-		fmt.Printf("--Status: %s|color=%s\n", *incident.Status, statusColor(incident))
-		fmt.Print("--Affected Components:\t")
-		if incident.Components != nil {
-			fmt.Print("\n")
-			for _, c := range *incident.Components {
-				fmt.Printf("--\t%s,", *c.Name)
-			}
-			println("\n")
-		} else {
-			fmt.Print("None\n")
+		menu.Line(fmt.Sprintf("Incident: %s", *incident.Name))
+		im := menu.NewSubMenu()
+		im.Line(fmt.Sprintf("Created: %s\n", formatDateTime(*incident.CreatedAt)))
+		im.Line("Open in StatusPage.io").Href(*incident.Shortlink)
+		im.Line(fmt.Sprintf("Impact: %s", *incident.Impact)).Style(impactStyle(incident, is))
+		im.Line(fmt.Sprintf("Status: %s", *incident.Status)).Style(statusStyle(incident, is))
+		for _, iu := range incident.IncidentUpdates {
+			im.Line(fmt.Sprintf("Updated At:%s", formatDateTime(*iu.CreatedAt)))
 		}
-		if incident.UpdatedAt != nil {
-			fmt.Printf("--Last Update: %s\n", formatDateTime(*incident.UpdatedAt))
+		im.Line("Affected Components")
+		cm := im.NewSubMenu()
+		if incident.Components != nil {
+			for _, c := range *incident.Components {
+				cm.Line(*c.Name)
+			}
+		} else {
+			cm.Line("None")
 		}
 	}
 	return nil
 }
 
-func showStatus(c *cli.Context) error {
-	showTitle()
-	fmt.Printf("Active Incidents (%d)|color=red\n", len(ActiveIncidents))
-	for _, incident := range ActiveIncidents {
-		fmt.Printf("Incident: %s|color=%s\n", *incident.Name, impactColor(incident))
-		fmt.Printf("--Created: %s\n", formatDateTime(*incident.CreatedAt))
-		fmt.Printf("--Open in StatusPage.io|href=%s\n", *incident.Shortlink)
-		fmt.Printf("--Impact: %s|color=%s\n", *incident.Impact, impactColor(incident))
-		fmt.Printf("--Status: %s|color=%s\n", *incident.Status, statusColor(incident))
-		fmt.Print("--Affected Components:\t")
-		if incident.Components != nil {
-			fmt.Print("\n")
-			for x, c := range *incident.Components {
-				if x == 0 {
-					fmt.Printf("--.\t%s\n", *c.Name)
-				} else if x == len(*incident.Components)-1 {
-					fmt.Printf("--.\t%s\n", *c.Name)
-				} else {
-					fmt.Printf("--.\t%s\n,", *c.Name)
+func handleActives() {
+	if haveActives() {
+		menu := bar.NewSubMenu()
+		s := bitbar.Style{Font: "UbuntuMono-Bold", Color: "red"}
+		menu.Line(fmt.Sprintf("Active Incidents (%d)", len(ActiveIncidents))).Style(s).Size(16).Font("Avenir-Bold")
+		for _, incident := range ActiveIncidents {
+			menu.Line(fmt.Sprintf("%s Incident: %s", conf.Icons.Openincident, *incident.Name)).Style(impactStyle(incident, s))
+			im := menu.NewSubMenu()
+			im.Line(fmt.Sprintf("Created: %s", formatDateTime(*incident.CreatedAt)))
+			im.Line("Open in StatusPage.io").Href(*incident.Shortlink)
+			im.Line(fmt.Sprintf("Impact: %s", *incident.Impact)).Style(impactStyle(incident, s))
+			im.Line(fmt.Sprintf("Status: %s", *incident.Status)).Style(statusStyle(incident, s))
+			im.Line("Affected Components:  ")
+			cm := menu.NewSubMenu()
+			if incident.Components != nil {
+				for x, c := range *incident.Components {
+					if x == 0 {
+						cm.Line(*c.Name)
+					} else if x == len(*incident.Components)-1 {
+						cm.Line(*c.Name)
+					} else {
+						cm.Line(*c.Name)
+					}
 				}
+			} else {
+				cm.Line("None listed\n")
 			}
-		} else {
-			fmt.Print("None listed\n")
-		}
-		if incident.UpdatedAt != nil {
-			fmt.Printf("--Last Update: %s\n", formatDateTime(*incident.UpdatedAt))
+			if incident.UpdatedAt != nil {
+				im.Line(fmt.Sprintf("Last Update: %s\n", formatDateTime(*incident.UpdatedAt)))
+			}
 		}
 	}
+}
+
+func showStatus(c *cli.Context) error {
+	showTitle()
+	handleActives()
+	showScheduled()
 	//url, err := getPageURL()
 	//if err != nil {
 	//log.Fatal(err)
 	//}
 	showResolved()
-	showScheduled()
 	//fmt.Printf("---\nGo To StatusPage|href=%s\n", url)
+	fmt.Print(bar.Render())
 	return nil
 }
 
