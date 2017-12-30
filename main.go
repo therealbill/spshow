@@ -189,9 +189,9 @@ func showScheduled() error {
 		if incident.Components != nil {
 			fmt.Print("\n")
 			for _, c := range *incident.Components {
-				fmt.Printf("--\t%s,", *c.Name)
+				fmt.Printf("--_\t%s\n", *c.Name)
 			}
-			println("\n")
+			//println("\n")
 		} else {
 			fmt.Print("None\n")
 		}
